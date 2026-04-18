@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>물의 상태 변화 게임</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue-50: #E6F1FB; --blue-400: #378ADD; --blue-600: #185FA5; --blue-800: #0C447C;
+    --teal-50: #E1F5EE; --teal-400: #1D9E75; --teal-600: #0F6E56; --teal-800: #085041;
+    --amber-50: #FAEEDA; --amber-400: #BA7517; --amber-600: #854F0B; --amber-800: #633806;
+    --green-50: #EAF3DE; --green-400: #639922; --green-600: #3B6D11;
+    --red-50: #FCEBEB; --red-400: #E24B4A; --red-600: #A32D2D;
+    --gray-50: #F1EFE8; --gray-100: #D3D1C7; --gray-400: #888780; --gray-600: #5F5E5A; --gray-800: #444441;
+    --bg: #f5f3ee;
+    --card: #ffffff;
+    --text: #2C2C2A;
+    --text-2: #5F5E5A;
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  header h1 {
+    font-family: 'Nunito', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--blue-600);
+    letter-spacing: -0.5px;
+  }
+  header p {
+    font-size: 14px;
+    color: var(--text-2);
+    margin-top: 4px;
+  }
+
+  .game-wrap {
+    width: 100%;
+    max-width: 680px;
+  }
+
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .score-pill {
+    background: var(--card);
+    border: 1px solid var(--gray-100);
+    border-radius: 24px;
+    padding: 6px 18px;
+    font-size: 14px;
+    color: var(--text-2);
+  }
+  .score-pill strong {
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .progress-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--gray-100);
+    transition: background 0.3s;
+  }
+  .dot.done { background: var(--green-400); }
+  .dot.current { background: var(--blue-400); }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-100);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .stage-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--blue-400);
+    margin-bottom: 4px;
+  }
+  .stage-desc {
+    font-size: 15px;
+    color: var(--text-2);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  .scenario {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    background: var(--gray-50);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    font-size: 16px;
+    line-height: 2;
+  }
+  .scenario-icon { font-size: 32px; flex-shrink: 0; line-height: 1; margin-top: 4px; }
+
+  .drop-zone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 90px;
+    min-height: 36px;
+    border: 2px dashed var(--gray-400);
+    border-radius: var(--radius-sm);
+    padding: 4px 12px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--gray-400);
+    cursor: pointer;
+    transition: all 0.2s;
+    vertical-align: middle;
+    margin: 0 4px;
+  }
+  .drop-zone.drag-over { border-color: var(--blue-400); background: var(--blue-50); color: var(--blue-600); }
+  .drop-zone.filled { border-style: solid; border-color: var(--gray-100); background: #fff; color: var(--text); }
+  .drop-zone.correct { border-color: var(--green-400); background: var(--green-50); color: var(--green-600); }
+  .drop-zone.wrong { border-color: var(--red-400); background: var(--red-50); color: var(--red-600); }
+
+  .choices-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .choice-chip {
+    background: var(--blue-50);
+    border: 1.5px solid var(--blue-400);
+    border-radius: 24px;
+    padding: 8px 20px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--blue-800);
+    cursor: grab;
+    user-select: none;
+    transition: transform 0.15s, opacity 0.2s, box-shadow 0.15s;
+  }
+  .choice-chip:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(55,138,221,0.15); }
+  .choice-chip:active { cursor: grabbing; transform: scale(1.06); }
+  .choice-chip.selected { background: var(--blue-400); color: #fff; border-color: var(--blue-600); }
+  .choice-chip.used { opacity: 0.3; pointer-events: none; }
+
+  .hint-box {
+    background: var(--amber-50);
+    border: 1px solid #FAC775;
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-size: 14px;
+    color: var(--amber-800);
+    margin-top: 16px;
+    display: none;
+  }
+  .hint-box.show { display: block; }
+
+  .feedback-bar {
+    border-radius: var(--radius-sm);
+    padding: 12px 18px;
+    font-size: 15px;
+    font-weight: 500;
+    text-align: center;
+    margin-top: 16px;
+    display: none;
+  }
+  .feedback-bar.show { display: block; }
+  .feedback-bar.correct { background: var(--green-50); color: var(--green-600); }
+  .feedback-bar.wrong { background: var(--red-50); color: var(--red-600); }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    justify-content: flex-end;
+  }
+  button {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1.5px solid var(--gray-100);
+    background: var(--card);
+    color: var(--text);
+    padding: 10px 22px;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  button:hover { background: var(--gray-50); }
+  button.primary {
+    background: var(--blue-400);
+    border-color: var(--blue-600);
+    color: #fff;
+  }
+  button.primary:hover { background: var(--blue-600); }
+
+  /* Result */
+  .result-wrap {
+    text-align: center;
+    padding: 40px 24px;
+  }
+  .result-medal { font-size: 72px; margin-bottom: 16px; }
+  .result-score { font-family: 'Nunito', sans-serif; font-size: 56px; font-weight: 800; color: var(--blue-600); }
+  .result-label { font-size: 14px; color: var(--text-2); margin-bottom: 8px; }
+  .result-msg { font-size: 18px; font-weight: 700; margin: 12px 0 32px; }
+  .result-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  @media (max-width: 480px) {
+    header h1 { font-size: 22px; }
+    .scenario { font-size: 14px; }
+    .choice-chip { font-size: 14px; padding: 7px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💧 물의 상태 변화</h1>
+  <p>초등학교 4학년 과학 — 드래그하거나 눌러서 빈 칸을 채워요!</p>
+</header>
+
+<div class="game-wrap">
+  <div class="top-bar">
+    <div class="score-pill">점수 <strong id="score">0</strong></div>
+    <div class="progress-dots" id="dots"></div>
+    <div class="score-pill">문제 <strong id="qnum">1</strong> / 8</div>
+  </div>
+
+  <div id="game-card" class="card">
+    <div class="stage-title" id="stage-title"></div>
+    <div class="stage-desc" id="stage-desc"></div>
+    <div class="scenario" id="scenario-area"></div>
+    <div class="choices-grid" id="choices-area"></div>
+    <div class="hint-box" id="hint-box"></div>
+    <div class="feedback-bar" id="feedback"></div>
+    <div class="actions">
+      <button onclick="showHint()">💡 힌트</button>
+      <button class="primary" onclick="checkAnswer()">정답 확인</button>
+    </div>
+  </div>
+
+  <div id="result-card" class="card result-wrap" style="display:none;"></div>
+</div>
+
+<script>
+const questions = [
+  { title:"상태 고르기", desc:"물이 냉동실에 들어가면 어떻게 될까요?", icon:"🧊", text:"냉동실에 넣은 물은 온도가 내려가서 <DROP> (이)가 됩니다.", answer:"얼음", hint:"0°C 아래로 온도가 내려가면 물이 굳어요!", choices:["얼음","수증기","구름","비"] },
+  { title:"변화 이름", desc:"물이 수증기로 변하는 과정의 이름을 맞혀 보세요.", icon:"♨️", text:"냄비의 물을 계속 가열하면 <DROP> 현상이 일어나 수증기가 됩니다.", answer:"기화", hint:"끓는 물에서 모락모락 올라오는 과정이에요!", choices:["응결","기화","융해","응고"] },
+  { title:"변화 이름", desc:"얼음이 물로 변하는 과정을 뭐라고 할까요?", icon:"🫗", text:"햇볕에 놓인 얼음이 녹아 물이 되는 현상을 <DROP> (이)라고 합니다.", answer:"융해", hint:"고체가 액체로 변하는 거예요. 녹는다고 하죠!", choices:["기화","액화","융해","승화"] },
+  { title:"변화 이름", desc:"수증기가 식어서 물방울이 되는 과정은?", icon:"🌫️", text:"차가운 유리컵 표면에 물방울이 맺히는 현상을 <DROP> (이)라고 합니다.", answer:"응결", hint:"수증기(기체)가 물(액체)이 되는 거예요!", choices:["기화","응고","응결","승화"] },
+  { title:"상태 고르기", desc:"물이 얼면 어떤 상태가 될까요?", icon:"❄️", text:"물은 0°C 이하가 되면 <DROP> (으)로 변합니다. 이 과정을 응고라고 해요.", answer:"고체", hint:"딱딱하게 굳어버리는 상태예요!", choices:["기체","고체","액체","플라즈마"] },
+  { title:"상태 고르기", desc:"수증기는 어떤 상태일까요?", icon:"💨", text:"물이 100°C에서 끓으면 <DROP> 상태의 수증기가 됩니다.", answer:"기체", hint:"눈에 보이지 않고 공기 중에 퍼지는 상태예요!", choices:["고체","액체","기체","반고체"] },
+  { title:"일상 속 변화", desc:"빨래가 마르는 건 어떤 현상일까요?", icon:"👕", text:"젖은 빨래가 햇볕에 마르는 것은 물이 수증기로 변하는 <DROP> 현상입니다.", answer:"기화", hint:"끓지 않아도 천천히 물이 수증기가 될 수 있어요!", choices:["응결","응고","기화","융해"] },
+  { title:"일상 속 변화", desc:"안경에 김이 서리는 건 어떤 현상일까요?", icon:"🕶️", text:"따뜻한 곳에서 차가운 곳으로 이동하면 안경에 김이 서리는 <DROP> 현상이 일어납니다.", answer:"응결", hint:"수증기가 차가운 표면을 만나 물방울이 돼요!", choices:["기화","응결","융해","응고"] },
+];
+
+let current=0, score=0, answers={}, checked=false, hintShown=false, selectedChip=null;
+
+function buildDots(){
+  const c=document.getElementById('dots');
+  c.innerHTML=questions.map((_,i)=>`<div class="dot ${i<current?'done':i===current?'current':''}"></div>`).join('');
+}
+
+function buildQuestion(){
+  checked=false; hintShown=false; answers={}; selectedChip=null;
+  const q=questions[current];
+  document.getElementById('stage-title').textContent=q.title;
+  document.getElementById('stage-desc').textContent=q.desc;
+  document.getElementById('qnum').textContent=current+1;
+  document.getElementById('feedback').className='feedback-bar';
+  document.getElementById('hint-box').className='hint-box';
+
+  const parts=q.text.split('<DROP>');
+  let html=`<div class="scenario-icon">${q.icon}</div><div style="flex:1;line-height:2.1">`;
+  parts.forEach((p,i)=>{
+    html+=`<span>${p}</span>`;
+    if(i<parts.length-1) html+=`<span class="drop-zone" id="zone-${i}" onclick="fillZone(${i})">답 선택</span>`;
+  });
+  html+='</div>';
+  document.getElementById('scenario-area').innerHTML=html;
+  setupDragDrop();
+
+  const shuffled=[...q.choices].sort(()=>Math.random()-.5);
+  document.getElementById('choices-area').innerHTML=shuffled.map(c=>
+    `<div class="choice-chip" draggable="true" id="chip-${c}" data-val="${c}"
+      ondragstart="onDragStart(event)" onclick="selectChip(this)">${c}</div>`
+  ).join('');
+  buildDots();
+}
+
+function setupDragDrop(){
+  setTimeout(()=>{
+    document.querySelectorAll('.drop-zone').forEach(z=>{
+      z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag-over');});
+      z.addEventListener('dragleave',()=>z.classList.remove('drag-over'));
+      z.addEventListener('drop',e=>{
+        e.preventDefault(); z.classList.remove('drag-over');
+        const val=e.dataTransfer.getData('val');
+        const idx=parseInt(z.id.split('-')[1]);
+        place(idx,val);
+      });
+    });
+  },50);
+}
+
+function onDragStart(e){
+  e.dataTransfer.setData('val',e.target.dataset.val);
+}
+
+function selectChip(el){
+  if(el.classList.contains('used')) return;
+  if(selectedChip===el){ el.classList.remove('selected'); selectedChip=null; return; }
+  if(selectedChip) selectedChip.classList.remove('selected');
+  selectedChip=el; el.classList.add('selected');
+}
+
+function fillZone(idx){
+  if(!selectedChip||checked) return;
+  place(idx,selectedChip.dataset.val);
+  selectedChip.classList.remove('selected'); selectedChip=null;
+}
+
+function place(idx,val){
+  if(checked) return;
+  const prev=answers[idx];
+  if(prev){ const pc=document.getElementById('chip-'+prev); if(pc) pc.classList.remove('used'); }
+  answers[idx]=val;
+  const zone=document.getElementById('zone-'+idx);
+  zone.textContent=val; zone.className='drop-zone filled';
+  const chip=document.getElementById('chip-'+val);
+  if(chip){ chip.classList.remove('selected'); chip.classList.add('used'); }
+}
+
+function showHint(){
+  if(hintShown) return; hintShown=true;
+  const hb=document.getElementById('hint-box');
+  hb.textContent='💡 힌트: '+questions[current].hint;
+  hb.className='hint-box show';
+}
+
+function checkAnswer(){
+  if(checked) return;
+  const q=questions[current];
+  const zCount=(q.text.match(/<DROP>/g)||[]).length;
+  if(Object.keys(answers).length<zCount){
+    const fb=document.getElementById('feedback');
+    fb.textContent='빈 칸을 먼저 채워 주세요!'; fb.className='feedback-bar show wrong'; return;
+  }
+  checked=true;
+  let ok=true;
+  for(let i=0;i<zCount;i++){
+    const z=document.getElementById('zone-'+i);
+    if(answers[i]===q.answer){ z.className='drop-zone filled correct'; }
+    else{ z.className='drop-zone filled wrong'; ok=false; }
+  }
+  const fb=document.getElementById('feedback');
+  if(ok){
+    score+=hintShown?5:10;
+    document.getElementById('score').textContent=score;
+    fb.textContent='🎉 정답이에요! 잘했어요!'; fb.className='feedback-bar show correct';
+  } else {
+    fb.textContent=`아쉬워요! 정답은 "${q.answer}" 이에요.`;
+    fb.className='feedback-bar show wrong';
+    const z=document.getElementById('zone-0');
+    if(z){ z.textContent=q.answer; z.className='drop-zone filled correct'; }
+  }
+  setTimeout(()=>{ current++; current>=questions.length?showResult():buildQuestion(); },1800);
+}
+
+function showResult(){
+  document.getElementById('game-card').style.display='none';
+  const rs=document.getElementById('result-card');
+  rs.style.display='block';
+  const pct=Math.round(score/80*100);
+  let medal='🥉',msg='조금 더 연습해 봐요!';
+  if(pct>=90){ medal='🥇'; msg='완벽해요! 물 박사님이네요! 🎊'; }
+  else if(pct>=70){ medal='🥈'; msg='정말 잘했어요! 거의 다 맞췄네요!'; }
+  else if(pct>=50){ medal='🥉'; msg='잘했어요! 조금만 더 공부하면 완벽해요!'; }
+  rs.innerHTML=`
+    <div class="result-medal">${medal}</div>
+    <div class="result-label">최종 점수</div>
+    <div class="result-score">${score}점</div>
+    <div class="result-msg">${msg}</div>
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:28px;">힌트 없이 맞추면 10점 · 힌트 쓰면 5점 · 만점 80점</p>
+    <div class="result-actions">
+      <button class="primary" onclick="restart()">🔄 다시 도전하기</button>
+    </div>`;
+  buildDots();
+}
+
+function restart(){
+  current=0; score=0;
+  document.getElementById('result-card').style.display='none';
+  document.getElementById('game-card').style.display='block';
+  buildQuestion();
+}
+
+buildQuestion();
+</script>
+</body>
+</html>
